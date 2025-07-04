@@ -37,7 +37,7 @@ This tool is ideal for network administrators, security researchers, and enthusi
     ```bash
     python3 -m venv venv
     source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-    pip install scapy netifaces
+    pip install -r requirements.txt
     ```
 
 3.  **Permissions:**
