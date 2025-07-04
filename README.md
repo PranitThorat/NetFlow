@@ -52,4 +52,4 @@ This tool is ideal for network administrators, security researchers, and enthusi
 ## 🚀 Usage
 
 ```bash
-python3 netflow.py
+python3 NetFlow.py
