@@ -27,7 +27,7 @@ This tool is ideal for network administrators, security researchers, and enthusi
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/PranitThorat/NetFlow.git](https://github.com/PranitThorat/NetFlow.git)
+    git clone https://github.com/PranitThorat/NetFlow.git
     cd NetFlow
     ```
 
