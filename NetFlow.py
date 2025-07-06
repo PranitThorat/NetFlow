@@ -15,7 +15,7 @@ from optparse import OptionParser
 import netifaces
 from collections import defaultdict
 
-# Globals
+
 iface = None
 gateway_ip = None
 gateway_mac = None
@@ -24,16 +24,16 @@ our_mac = None
 targets = {}
 spoof_domains = {}
 stop_event = threading.Event()
-dns_mitm_log_file = "dns_mitm_actions.log" # For actions taken by the spoofing mode
+dns_mitm_log_file = "dns_mitm_actions.log" 
 
-# --- New Log File Paths ---
+
 LOGS_DIR = "logs"
 general_http_https_log_file = os.path.join(LOGS_DIR, "general_http_https_traffic.log")
 all_dns_traffic_summary_log_file = os.path.join(LOGS_DIR, "all_dns_traffic_summary_sorted.log")
-victim_log_files = {} # Stores {ip: file_object} for victim-specific DNS logs
-# --- End New Log File Paths ---
+victim_log_files = {} 
 
-# Traffic summary statistics
+
+
 total_packets_sniffed = 0
 unique_src_ips = set()
 unique_dst_ips = set()
@@ -41,10 +41,10 @@ http_hosts_logged = set()
 https_hosts_logged = set()
 http_urls_logged = set()
 
-# New global for DNS traffic monitoring
-dns_traffic_log = defaultdict(lambda: defaultdict(set)) # Stores summary for A-Z sorted log
 
-# --- Color Definitions ---
+dns_traffic_log = defaultdict(lambda: defaultdict(set)) 
+
+
 COLOR_RESET = "\033[0m"
 COLOR_BOLD = "\033[1m"
 COLOR_RED = "\033[31m"
@@ -52,10 +52,10 @@ COLOR_GREEN = "\033[32m"
 COLOR_YELLOW = "\033[33m"
 COLOR_BLUE = "\033[34m"
 COLOR_MAGENTA = "\033[35m"
-COLOR_CYAN = "\033[36m" # Fixed: Defined COLOR_CYAN explicitly
+COLOR_CYAN = "\033[36m" 
 COLOR_WHITE = "\033[37m"
 
-COLOR_PALETTE = [ # Used for assigning unique colors to IPs
+COLOR_PALETTE = [ 
     COLOR_RED,
     COLOR_GREEN,
     COLOR_YELLOW,
@@ -64,16 +64,16 @@ COLOR_PALETTE = [ # Used for assigning unique colors to IPs
     COLOR_CYAN,
     COLOR_WHITE,
 ]
-# --- End Color Definitions ---
 
-# Global to store IP-to-color mapping
+
+
 ip_color_map = {}
 color_index = 0
 
-# New global for dynamically set highlight domains (initially empty)
+
 runtime_highlight_domains = set()
 
-# --- NetFlow Banner Function (Corrected) ---
+
 def display_banner():
     """Displays the NetFlow project banner with scary emojis and correct ASCII art."""
     print(f"""
@@ -109,7 +109,7 @@ NNNNNNNN         NNNNNNN    eeeeeeeeeeeeee            ttttttttttt       FFFFFFFF
     GitHub: https://github.com/PranitThorat
 {COLOR_RESET}
     """)
-# --- End NetFlow Banner Function ---
+
 
 def ensure_logs_dir():
     """Ensures the logs directory exists."""
@@ -120,7 +120,7 @@ def ensure_logs_dir():
 def is_highlight_domain(domain_name):
     """Checks if a domain name (or its parent) should be highlighted from runtime_highlight_domains."""
     for hl_domain in runtime_highlight_domains:
-        # Check if the domain name exactly matches or is a subdomain of a highlight domain
+       
         if domain_name == hl_domain or domain_name.endswith("." + hl_domain):
             return True
     return False
@@ -289,7 +289,7 @@ def forward_packet(pkt):
                 sendp(pkt, iface=iface, verbose=False)
             else:
                 if pkt.haslayer(IP):
-                    # Changed from traffic_log_file to dns_mitm_log_file for non-targeted packet forwarding
+                 
                     log_to_file(dns_mitm_log_file, f"Warning: Forwarded non-targeted packet from gateway. DST IP: {pkt[IP].dst}. Packet: {pkt.summary()}")
                 else:
                     log_to_file(dns_mitm_log_file, f"Warning: Forwarded non-IP packet from gateway. Packet: {pkt.summary()}")
@@ -382,7 +382,7 @@ def dns_traffic_monitor_packet_handler(pkt):
 
         if victim_ip == our_ip or victim_ip in targets:
             try:
-                # Ensure victim-specific log file is open
+             
                 if victim_ip not in victim_log_files:
                     victim_filename = os.path.join(LOGS_DIR, f"victim_dns_traffic_{victim_ip}.log")
                     try:
@@ -390,48 +390,44 @@ def dns_traffic_monitor_packet_handler(pkt):
                         print(f"[*] Created new victim-specific DNS log: '{victim_filename}'")
                     except IOError as e:
                         print(f"[-] Error opening log file for {victim_ip}: {e}. Skipping victim-specific logging.")
-                        # Set to None to prevent further attempts for this victim in this session
+                       
                         victim_log_files[victim_ip] = None
-                        return # Skip processing for this packet if file cannot be opened
+                        return 
 
                 for i in range(pkt[DNS].ancount):
                     ans_rr = pkt[DNS].an[i]
-                    if ans_rr.type == 1: # A record (IPv4 address)
+                    if ans_rr.type == 1:
                         domain = ans_rr.rrname.decode().strip('.')
                         resolved_ip = ans_rr.rdata
 
                         if resolved_ip and resolved_ip != '0.0.0.0':
-                            dns_traffic_log[victim_ip][domain].add(resolved_ip) # For summary log
+                            dns_traffic_log[victim_ip][domain].add(resolved_ip)
                             
-                            # Get the victim's specific color
+                           
                             ip_color = get_ip_color(victim_ip)
 
                             domain_display = domain
                             resolved_ip_display = resolved_ip
 
                             if is_highlight_domain(domain):
-                                # Apply bold for domain and its resolved IP
-                                # Crucially, re-apply the victim's IP color after COLOR_RESET
-                                # to ensure the rest of the line segment remains colored correctly.
+                              
                                 domain_display = f"{COLOR_BOLD}{domain}{COLOR_RESET}{ip_color}"
                                 resolved_ip_display = f"{COLOR_BOLD}{resolved_ip}{COLOR_RESET}{ip_color}"
 
-                            # Construct the entire log message console string.
-                            # The ip_color for the entire line is applied outside this f-string.
+                           
                             log_message_console = (f"Victim: {victim_ip} requested: {domain_display} -> resolved to: {resolved_ip_display}")
                             
-                            # Print to console
+                  
                             print(f"{ip_color}[DNS Visit] {log_message_console}{COLOR_RESET}")
-                            
-                            # Log to victim-specific file
-                            if victim_log_files[victim_ip]: # Check if file handle is valid
+                        
+                            if victim_log_files[victim_ip]:
                                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                                 log_message_file_content = f"[{timestamp}] [DNS Visit] Victim: {victim_ip} requested: {domain} -> resolved to: {resolved_ip}"
                                 victim_log_files[victim_ip].write(f"{log_message_file_content}\n")
-                                victim_log_files[victim_ip].flush() # Ensure data is written to disk immediately
+                                victim_log_files[victim_ip].flush() 
             except Exception as e:
-                # Catch specific exceptions if needed, but a general catch for resilience.
-                pass # print(f"Error processing DNS packet: {e}")
+
+                pass 
 
     forward_packet(pkt)
 
@@ -505,7 +501,7 @@ def signal_handler(sig, frame):
 
     print("[*] Closing victim-specific DNS log files...")
     for ip, f_obj in victim_log_files.items():
-        if f_obj: # Only close if it's a valid file object (not None due to error)
+        if f_obj: 
             f_obj.close()
             print(f"[*] Closed log for {ip}.")
     print("[*] Victim-specific DNS log files closed.")
@@ -545,27 +541,27 @@ def generate_traffic_summary():
         if runtime_highlight_domains:
             print(f"  (Domains configured for highlighting: {', '.join(sorted(list(runtime_highlight_domains)))})")
 
-        # Prepare data for combined A-Z log file
+      
         combined_dns_entries = []
         for victim_ip, domains_data in dns_traffic_log.items():
             for domain, resolved_ips in domains_data.items():
                 combined_dns_entries.append({
                     'victim_ip': victim_ip,
                     'domain': domain,
-                    'resolved_ips': sorted(list(resolved_ips)) # Sort IPs for consistent output
+                    'resolved_ips': sorted(list(resolved_ips)) 
                 })
 
-        # Sort combined entries by domain name (A-Z)
+       
         combined_dns_entries.sort(key=lambda x: x['domain'])
 
-        # Write to comprehensive combined DNS log file
+    
         try:
             with open(all_dns_traffic_summary_log_file, "w") as f_all:
                 f_all.write(f"--- Combined DNS Traffic Summary Log ({time.strftime('%Y-%m-%d %H:%M:%S')}) ---\n")
                 if runtime_highlight_domains:
                     f_all.write(f"Domains configured for highlighting: {', '.join(sorted(list(runtime_highlight_domains)))}\n\n")
 
-                last_domain_written = None # To avoid redundant domain headers if multiple victims request same domain
+                last_domain_written = None 
 
                 for entry in combined_dns_entries:
                     victim_ip = entry['victim_ip']
@@ -581,22 +577,22 @@ def generate_traffic_summary():
         except IOError as e:
             print(f"[-] Error writing to combined DNS summary log file: {e}")
 
-        # Print to console (existing logic)
+        
         for victim_ip, domains_data in dns_traffic_log.items():
             ip_color = get_ip_color(victim_ip)
             print(f"  {ip_color}Victim IP: {victim_ip}{COLOR_RESET}")
             for domain, resolved_ips in domains_data.items():
                 domain_display = domain
                 resolved_ips_display_list = []
-                # Prepare resolved IPs for display in console
+                
                 for res_ip in sorted(list(resolved_ips)):
-                    # When printing to console, apply bold, then reset, then the ip_color for the rest of the line
+                    
                     if is_highlight_domain(domain):
                         resolved_ips_display_list.append(f"{COLOR_BOLD}{res_ip}{COLOR_RESET}{ip_color}")
                     else:
                         resolved_ips_display_list.append(res_ip)
 
-                # Ensure domain_display itself also resets and reapplies color for consistency
+               
                 if is_highlight_domain(domain):
                     domain_display = f"{COLOR_BOLD}{domain}{COLOR_RESET}{ip_color}"
                 
@@ -629,14 +625,14 @@ def run_dns_mitm_mode():
 
     print(f"[*] Spoofing domains: {spoof_domains}")
 
-    # Prompt for domains to highlight in this mode as well
+   
     highlight_input = input("Enter domains to highlight (comma-separated, e.g., google.com,youtube.com, optional): ").strip()
     if highlight_input:
-        runtime_highlight_domains.clear() # Clear previous highlights
+        runtime_highlight_domains.clear() 
         runtime_highlight_domains.update({d.strip().lower() for d in highlight_input.split(',')})
         print(f"[*] Domains set for highlighting in this session: {', '.join(sorted(list(runtime_highlight_domains)))}")
     else:
-        runtime_highlight_domains.clear() # Ensure no highlights if user leaves blank
+        runtime_highlight_domains.clear() 
         print("[*] No specific domains set for highlighting in this session.")
 
 
@@ -717,7 +713,7 @@ def run_passive_monitoring_mode():
     print("[*] On switched networks, this will primarily show your system's traffic unless ARP spoofing is active elsewhere.")
     print("[*] Press Ctrl+C to stop and view summary.")
 
-    # In passive mode, we clear highlighting as it's not strictly domain-based for this monitor
+    
     runtime_highlight_domains.clear()
 
     total_packets_sniffed = 0
@@ -726,7 +722,7 @@ def run_passive_monitoring_mode():
     http_hosts_logged.clear()
     https_hosts_logged.clear()
     http_urls_logged.clear()
-    dns_traffic_log.clear() # Clear DNS log as this mode is for HTTP/HTTPS
+    dns_traffic_log.clear() 
     ip_color_map.clear()
     color_index = 0
 
@@ -754,14 +750,14 @@ def run_dns_traffic_monitor_active_mitm_mode():
     print(f"[*] A combined, sorted DNS summary will be saved in: {LOGS_DIR}/all_dns_traffic_summary_sorted.log")
 
 
-    # Prompt for domains to highlight
+    
     highlight_input = input("Enter domains to highlight (comma-separated, e.g., google.com,youtube.com, optional): ").strip()
     if highlight_input:
-        runtime_highlight_domains.clear() # Clear previous highlights
+        runtime_highlight_domains.clear() 
         runtime_highlight_domains.update({d.strip().lower() for d in highlight_input.split(',')})
         print(f"[*] Domains set for highlighting in this session: {', '.join(sorted(list(runtime_highlight_domains)))}")
     else:
-        runtime_highlight_domains.clear() # Ensure no highlights if user leaves blank
+        runtime_highlight_domains.clear() 
         print("[*] No specific domains set for highlighting in this session.")
 
 
@@ -816,14 +812,14 @@ def run_dns_traffic_monitor_active_mitm_mode():
     thread.daemon = True
     thread.start()
 
-    # Reset statistics and log data for new session
+    
     total_packets_sniffed = 0
     unique_src_ips.clear()
     unique_dst_ips.clear()
     dns_traffic_log.clear()
     ip_color_map.clear()
     color_index = 0
-    # Clear and close any existing victim specific log files from previous runs
+    
     for ip, f_obj in victim_log_files.items():
         if f_obj: f_obj.close()
     victim_log_files.clear()
@@ -841,10 +837,10 @@ def main():
 
     mitm_active = False
 
-    # Display the NetFlow banner at startup
+   
     display_banner()
 
-    # Ensure logs directory exists at startup
+    
     ensure_logs_dir()
 
     signal.signal(signal.SIGINT, signal_handler)
