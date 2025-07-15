@@ -176,4 +176,4 @@ This project is licensed under the MIT License - see the `LICENSE` file (if prov
 
 ## 📞 Contact
 
-If you have questions or need further assistance, feel free to reach out to the project maintainer (if contact information is provided in the actual script or project).
+If you have questions or need further assistance, feel free to reach out.
