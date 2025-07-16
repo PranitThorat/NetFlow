@@ -83,8 +83,8 @@ Follow these steps to get the tool ready on your machine:
 1.  **Open your Terminal/Command Prompt** (as Administrator/root).
 2.  **Navigate** to the tool's directory (as shown in Installation Step 3).
 3.  **Run the script:**
-    * **Linux/macOS:** `sudo python3 your_script_name.py` (Replace `your_script_name.py` with the actual file name of your main tool script, e.g., `netflow_tool.py`)
-    * **Windows:** `python your_script_name.py`
+    * **Linux/macOS:** `sudo python3 NetFlow.py` 
+    * **Windows:** `python NetFlow.py`
 4.  The tool will then list **available network interfaces**.
     * Choose the **number** corresponding to your active network connection (e.g., `wlan0` for Wi-Fi, `eth0` for wired).
 5.  You will then see the **Main Menu**.
